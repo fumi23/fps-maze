@@ -10,11 +10,18 @@ import { sub, dot, add, scale, axisOf } from "./vec.js";
 // --- 色パレット(レトロで落ち着いた寒色系) ---
 const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 const BG = hex("#0e1118");
-const WALL_A = hex("#7c8aa0"); // 水平軸その1の壁(明)
-const WALL_B = hex("#5b6779"); // 水平軸その2の壁(暗)→ 角の向きが読める
-const FLOOR = hex("#262c38");
-const CEIL = hex("#8f9db4");
 const EDGE = hex("#0b0d13");
+
+// 面の色は「世界軸ごとに色相・法線の符号で明暗」で決める(世界固定=プレイヤーの向きに依存しない)。
+// axis 0=X(東西) 1=Y(上下) 2=Z(南北) 3=W(4D用)。neg=−方向の面 / pos=+方向の面。
+// 全体はミュートな寒色系に馴染むよう低彩度。Yは従来のグレー(床=濃/天井=薄)を維持。
+const AXIS_COLORS = [
+  { neg: hex("#67655e"), pos: hex("#9b9991") }, // X: 気づく程度の暖色グレー(東西)
+  { neg: hex("#262c38"), pos: hex("#8f9db4") }, // Y: 青灰(床=濃 / 天井=薄)
+  { neg: hex("#616a63"), pos: hex("#949e97") }, // Z: 気づく程度の緑グレー(南北)
+  { neg: hex("#656169"), pos: hex("#9a9aa2") }, // W: 気づく程度の紫グレー(4D用・将来)
+];
+const FALLBACK = { neg: hex("#454b57"), pos: hex("#8f9db4") };
 
 const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const css = (c) => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
@@ -64,7 +71,7 @@ export class Renderer {
 
     // 壁面を集める(現在スライス内 & 描画距離内の空セルの、壁に接する面)
     const faces = [];
-    this._collectFaces(maze, rounded, visible, axU, pos, faces);
+    this._collectFaces(maze, rounded, visible, pos, faces);
 
     // カメラ空間へ変換して深度計算
     const projected = [];
@@ -112,10 +119,9 @@ export class Renderer {
     }
   }
 
-  _collectFaces(maze, center, visible, upAxis, camPos, out) {
+  _collectFaces(maze, center, visible, camPos, out) {
     const visAxes = [...visible];
     const size = maze.size;
-    const N = maze.dims;
     const rd = this.maxDist;
 
     // 可視3軸の範囲だけを走査(不可視軸はプレイヤー座標に固定 = 現在スライス)
@@ -136,7 +142,7 @@ export class Renderer {
             const nb = c.slice();
             nb[ax] += sign;
             if (maze.isEmpty(nb)) continue; // 通路が続く→面なし
-            out.push(this._makeFace(c, ax, sign, visAxes, upAxis, N));
+            out.push(this._makeFace(c, ax, sign, visAxes));
           }
         }
         return;
@@ -148,7 +154,7 @@ export class Renderer {
   }
 
   // セル c の ax 方向(sign)側の境界面(単位正方形)を作る。
-  _makeFace(c, ax, sign, visAxes, upAxis, N) {
+  _makeFace(c, ax, sign, visAxes) {
     const center = c.slice();
     center[ax] += 0.5 * sign;
     // 面が張る、ax以外の可視2軸
@@ -167,9 +173,9 @@ export class Renderer {
       return p;
     });
 
-    let color;
-    if (ax === upAxis) color = sign > 0 ? CEIL : FLOOR; // 上隣が壁=天井 / 下隣が壁=床
-    else color = span.includes(upAxis) ? WALL_A : WALL_B; // 壁を軸で塗り分け
+    // 世界固定の配色: その面の世界軸(ax)で色相、法線の符号(sign)で明暗。
+    const pal = AXIS_COLORS[ax] ?? FALLBACK;
+    const color = sign > 0 ? pal.pos : pal.neg;
 
     return { pts, color };
   }
