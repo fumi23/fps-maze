@@ -37,8 +37,8 @@ export class Player {
     this.pos = clone(maze.start);
     this.basis = initialBasis(maze, this.pos);
 
-    this.moveDur = opts.moveDur ?? 0.16; // 1マス移動の所要秒
-    this.turnDur = opts.turnDur ?? 0.2; // 90度回転の所要秒
+    this.moveDur = opts.moveDur ?? 0.16; // 1マス移動の所要秒(サクサク寄り)
+    this.turnDur = opts.turnDur ?? 0.3; // 90度回転の所要秒(気持ちゆっくり)
     this.eyeHeight = opts.eyeHeight ?? 0; // 上方向スロットへのオフセット(セル中心=0)
 
     this.anim = null; // { type, t(0..1), ... }
