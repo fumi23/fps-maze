@@ -53,6 +53,12 @@ export class Renderer {
     this.f = this.H / 2 / Math.tan(this.fov / 2); // 焦点距離(px)
   }
 
+  // 視野角(縦基準・度)を変更。コンソールからのライブ調整用: renderer.setFov(85)
+  setFov(deg) {
+    this.fov = deg * (Math.PI / 180);
+    this.f = this.H / 2 / Math.tan(this.fov / 2);
+  }
+
   // snapBasis: グリッド整列したスナップ済み基底 [右,上,前,...]。
   // 可視軸/スライスの判定はこちらから行う(回転アニメ中は camera.R/U/Fwd が軸に
   // 整列しておらず axisOf が破綻するため)。投影には補間済みの camera を使う。

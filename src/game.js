@@ -14,7 +14,7 @@ export class Game {
     this.canvas = canvas;
     this.maze = maze;
     this.hud = hud;
-    this.renderer = new Renderer(canvas, { fov: 75 });
+    this.renderer = new Renderer(canvas, { fov: 85 });
     this.player = new Player(maze, { eyeHeight: 0 });
     this.input = new Input(window);
     this.showMinimap = true;
