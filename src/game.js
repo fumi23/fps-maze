@@ -17,7 +17,6 @@ export class Game {
     this.player = new Player(maze, { eyeHeight: 0 });
     this.input = new Input(window);
     this.showMinimap = true;
-    this.showWin = false;
 
     window.addEventListener("resize", () => this.renderer.resize());
 
@@ -76,11 +75,7 @@ export class Game {
   updateHud(cam) {
     if (!this.hud) return;
     const p = this.player.pos;
-    const won = this.player.won;
-    if (won !== this.showWin) {
-      this.showWin = won;
-      this.hud.win.style.display = won ? "flex" : "none";
-    }
+    this.hud.win.style.display = this.player.won ? "flex" : "none";
     const facing = faceName(cam.Fwd);
     this.hud.pos.textContent = `pos (${p.join(", ")})  facing ${facing}`;
   }
