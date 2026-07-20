@@ -156,6 +156,7 @@ export class Game {
     this.hud.win.style.display = this.player.won ? "flex" : "none";
     const facing = faceName(cam.Fwd);
     this.hud.pos.textContent = `pos (${p.join(", ")})  facing ${facing}`;
+    if (this.hud.goal) this.hud.goal.textContent = `goal (${this.maze.goal.join(", ")})`;
   }
 }
 

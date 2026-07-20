@@ -11,6 +11,7 @@ const game = new Game({
   maze,
   hud: {
     pos: document.getElementById("hud-pos"),
+    goal: document.getElementById("hud-goal"),
     win: document.getElementById("win"),
   },
 });
