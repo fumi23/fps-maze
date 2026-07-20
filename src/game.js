@@ -23,6 +23,7 @@ export class Game {
     this.player = new Player(maze, { eyeHeight: 0 });
     this.input = new Input(window);
     this.minimapPeek = 0; // ミニマップの残り表示秒(0 = 非表示)
+    this.minimapPinned = false; // デバッグ: 常時表示(game.debug.minimap)
     this.debug = this._makeDebug();
 
     window.addEventListener("resize", () => this.renderer.resize());
@@ -95,6 +96,12 @@ export class Game {
       goal() {
         return g.maze.goal.slice();
       },
+      // ミニマップを常時表示/解除(通常は M の一時表示のみ)。
+      minimap(on = true) {
+        g.minimapPinned = !!on;
+        console.log("[debug] minimap pinned =", g.minimapPinned);
+        return g.minimapPinned;
+      },
     };
   }
 
@@ -128,15 +135,20 @@ export class Game {
     const cam = this.player.getCamera();
     this.renderer.render(cam, this.maze, this.player.basis);
 
-    // ミニマップ一時表示(Mで数秒だけ)。淡くフェードイン/アウトさせる。
-    if (this.minimapPeek > 0) {
+    // ミニマップ: 常時表示(デバッグ)なら alpha=1、それ以外は M の一時表示をフェード。
+    let mmAlpha = 0;
+    if (this.minimapPinned) {
+      mmAlpha = 1;
+    } else if (this.minimapPeek > 0) {
       this.minimapPeek = Math.max(0, this.minimapPeek - dt);
       const t = this.minimapPeek;
       const elapsed = MINIMAP_PEEK - t;
-      const alpha = Math.min(1, elapsed / MINIMAP_FADE_IN, t / MINIMAP_FADE_OUT);
+      mmAlpha = Math.min(1, elapsed / MINIMAP_FADE_IN, t / MINIMAP_FADE_OUT);
+    }
+    if (mmAlpha > 0) {
       const ctx = this.renderer.ctx;
       ctx.save();
-      ctx.globalAlpha = alpha;
+      ctx.globalAlpha = mmAlpha;
       drawMinimap(ctx, this.maze, cam, this.player.basis, {
         cell: 8 * this.renderer.dpr,
         pad: 12 * this.renderer.dpr,

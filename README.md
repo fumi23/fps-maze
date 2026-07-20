@@ -108,6 +108,7 @@ game.debug.teleport([x, 1, z]) // 任意セルへ(壁なら拒否して警告)
 game.debug.teleport([3, 1, 5], game.debug.goal()) // 移動してゴールの方を向く
 game.debug.pos()               // 今の座標
 game.debug.goal()              // ゴール座標
+game.debug.minimap(true)       // ミニマップを常時表示(false で解除。通常は M の一時表示)
 ```
 
 - 座標は `[X, Y, Z]`。今のコースは Y=1 の1層なので中央は常に 1、水平は X と Z。
