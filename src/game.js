@@ -9,6 +9,11 @@ import { drawMinimap } from "./minimap.js";
 import { sub, axisOf } from "./vec.js";
 import { rotated, FWD, RIGHT } from "./orientation.js";
 
+// ミニマップは常時表示せず「M で一時的に覗く」方式。地図を追いながら歩く状態を避ける。
+const MINIMAP_PEEK = 3.5; // 表示してから消えるまでの秒数
+const MINIMAP_FADE_IN = 0.15;
+const MINIMAP_FADE_OUT = 0.6;
+
 export class Game {
   constructor({ canvas, maze, hud }) {
     this.canvas = canvas;
@@ -17,7 +22,7 @@ export class Game {
     this.renderer = new Renderer(canvas, { fov: 85 });
     this.player = new Player(maze, { eyeHeight: 0 });
     this.input = new Input(window);
-    this.showMinimap = true;
+    this.minimapPeek = 0; // ミニマップの残り表示秒(0 = 非表示)
     this.debug = this._makeDebug();
 
     window.addEventListener("resize", () => this.renderer.resize());
@@ -97,7 +102,7 @@ export class Game {
     const inp = this.input;
 
     // 単発トグル系
-    if (inp.wasPressed("m")) this.showMinimap = !this.showMinimap;
+    if (inp.wasPressed("m")) this.minimapPeek = MINIMAP_PEEK; // 一時表示(再押下で延長)
     if (inp.wasPressed("r")) this.restart();
 
     if (this.player.busy) return; // アニメ中は次の入力を受けない(離散)
@@ -123,11 +128,21 @@ export class Game {
     const cam = this.player.getCamera();
     this.renderer.render(cam, this.maze, this.player.basis);
 
-    if (this.showMinimap) {
-      drawMinimap(this.renderer.ctx, this.maze, cam, this.player.basis, {
+    // ミニマップ一時表示(Mで数秒だけ)。淡くフェードイン/アウトさせる。
+    if (this.minimapPeek > 0) {
+      this.minimapPeek = Math.max(0, this.minimapPeek - dt);
+      const t = this.minimapPeek;
+      const elapsed = MINIMAP_PEEK - t;
+      const alpha = Math.min(1, elapsed / MINIMAP_FADE_IN, t / MINIMAP_FADE_OUT);
+      const ctx = this.renderer.ctx;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      drawMinimap(ctx, this.maze, cam, this.player.basis, {
         cell: 8 * this.renderer.dpr,
         pad: 12 * this.renderer.dpr,
+        anchor: "bottom-right",
       });
+      ctx.restore();
     }
 
     this.updateHud(cam);

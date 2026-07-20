@@ -23,8 +23,15 @@ export function drawMinimap(ctx, maze, camera, snapBasis, opts = {}) {
   const w = wCells * cell;
   const h = hCells * cell;
 
+  // 配置(anchor)。既定は左上。'bottom-right' 等で四隅に寄せる。
+  const anchor = opts.anchor ?? "top-left";
+  const cw = ctx.canvas.width;
+  const ch = ctx.canvas.height;
+  const ox = anchor.includes("right") ? cw - w - pad : pad;
+  const oy = anchor.includes("bottom") ? ch - h - pad : pad;
+
   ctx.save();
-  ctx.translate(pad, pad);
+  ctx.translate(ox, oy);
 
   ctx.fillStyle = "rgba(8,10,16,0.72)";
   ctx.fillRect(-4, -4, w + 8, h + 8);
