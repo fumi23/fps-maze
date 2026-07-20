@@ -1,0 +1,89 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: #0e1118;
+  color: #cdd6e4;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+#view {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: default;
+  image-rendering: auto;
+}
+
+/* HUD(座標表示) */
+#hud {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #8aa0bd;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+
+/* 操作ヘルプ */
+#help {
+  position: fixed;
+  left: 14px;
+  bottom: 14px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #9fb0c8;
+  background: rgba(8, 10, 16, 0.6);
+  padding: 10px 14px;
+  border-radius: 8px;
+  text-shadow: 0 1px 2px #000;
+  pointer-events: none;
+}
+#help .help-title {
+  color: #6f819c;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+#help b {
+  color: #dfe8f5;
+  font-weight: 600;
+}
+
+/* ゴール表示 */
+#win {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 10, 16, 0.55);
+  pointer-events: none;
+}
+.win-box {
+  text-align: center;
+  padding: 28px 44px;
+  background: rgba(18, 22, 32, 0.92);
+  border: 1px solid #2b3446;
+  border-radius: 14px;
+}
+.win-title {
+  font-size: 34px;
+  font-weight: 700;
+  color: #ffd76a;
+  letter-spacing: 0.04em;
+}
+.win-sub {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #90a1bb;
+}

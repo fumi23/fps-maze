@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FPS Maze — 一人称迷路</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%230e1118'/><path d='M3 3h10v10H3z' fill='none' stroke='%237c8aa0' stroke-width='2'/></svg>" />
+    <link rel="stylesheet" href="./css/style.css" />
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+
+    <div id="hud">
+      <div id="hud-pos" class="hud-line">pos</div>
+    </div>
+
+    <div id="help">
+      <div class="help-title">操作</div>
+      <div><b>W / S</b> 前進 / 後退</div>
+      <div><b>A / D</b> 左右ストレイフ</div>
+      <div><b>Q / E</b> または <b>← / →</b> 90°旋回</div>
+      <div><b>M</b> ミニマップ　<b>R</b> リスタート</div>
+    </div>
+
+    <div id="win">
+      <div class="win-box">
+        <div class="win-title">GOAL 🎉</div>
+        <div class="win-sub">R でもう一度</div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
