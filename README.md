@@ -1,24 +1,12 @@
 # FPS Maze — ブラウザで遊べる一人称視点の迷路
 
 依存ライブラリなしの素の HTML + JavaScript(ES Modules)で動く、一人称視点の迷路探索。
-GitHub Pages にそのまま置けます。
 
-最終目標は **4次元迷路**。そのため、エンジンは最初から **N次元汎用** に設計してあり、
-レンダラは「3D透視投影」1つで 2D / 3D / 4D すべてを描けるようになっています。
+## ▶ 遊ぶ
 
----
+**<https://fumi23.github.io/fps-maze/>**(GitHub Pages)
 
-## 遊ぶ(ローカル)
-
-ES Modules を使うので、`file://` 直開きではなくローカルサーバー経由で開きます。
-
-```bash
-cd fps-maze
-python3 -m http.server 8000
-# ブラウザで http://localhost:8000/ を開く
-```
-
-### 操作
+PC + キーボード推奨。
 
 | キー | 動作 |
 | --- | --- |
@@ -34,6 +22,9 @@ python3 -m http.server 8000
 ---
 
 ## 設計の考え方
+
+最終目標は **4次元迷路**。そのため、エンジンは最初から **N次元汎用** に設計してあり、
+レンダラは「3D透視投影」1つで 2D / 3D / 4D すべてを描けるようになっています。
 
 ### 次元に依存しない状態
 
@@ -59,7 +50,19 @@ python3 -m http.server 8000
 
 ---
 
-## ファイル構成
+## 開発
+
+### ローカルで動かす
+
+ES Modules を使うので、`file://` 直開きではなくローカルサーバー経由で開きます。
+
+```bash
+cd fps-maze
+python3 -m http.server 8000
+# ブラウザで http://localhost:8000/ を開く
+```
+
+### ファイル構成
 
 ```
 index.html            エントリ(canvas と HUD)
@@ -78,10 +81,10 @@ src/
     course1.js        コース1ローダ(2Dグリッドを1層3Dに配置)
     course1.data.js   自動生成された静的マップ
 tools/
-  gen-maze.mjs        迷路生成プログラム(いまは2D。将来N次元へ)
+  gen-maze.mjs        迷路生成プログラム(2D 完全迷路 / 再帰的バックトラッカー)
 ```
 
-## コースの作り直し
+### コースの作り直し
 
 静的コースは生成プログラムで作っています。別のマップにしたいとき:
 
@@ -92,9 +95,7 @@ node tools/gen-maze.mjs --w 11 --h 11 --seed 7 > src/courses/course1.data.js
 - `--w` / `--h`: 部屋数(実グリッドは `2w+1` × `2h+1`)
 - `--seed`: 乱数シード(同じ値なら同じ迷路)
 
----
-
-## デバッグ(ブラウザのコンソール)
+### デバッグ(コンソール)
 
 起動すると `window.game` にゲーム本体が公開されるので、コンソールから状態を触れます。
 `game.debug` にテレポート系のヘルパーがあります。
@@ -114,32 +115,4 @@ game.debug.goal()              // ゴール座標
   `game.debug.teleport([x, y, z, w])` のようにそのまま使えます。
 - そのほか `game.player`(位置・向き)、`game.maze`、`game.renderer` に直接アクセス可能。
 
-> `window.game` はデバッグ用途の公開です。不要になったら `src/main.js` の該当行を消してください。
-
----
-
-## GitHub Pages で公開
-
-ビルド不要。リポジトリ直下に `index.html` があるので、そのまま公開できます。
-
-1. GitHub にリポジトリを作って push
-2. **Settings → Pages → Build and deployment**
-3. Source を **Deploy from a branch**、Branch を `main` / `/ (root)` に設定
-4. 数分後 `https://<user>.github.io/<repo>/` で公開される
-
-> ES Modules は https 経由なら正しい MIME で配信されるのでそのまま動きます。
-
----
-
-## これから(ロードマップ)
-
-1. **今ここ**: 1層3Dコースで見え方・操作感を作り込む
-2. 上下移動 + 上下90度回転(ピッチ)を追加 → **真の3D迷路**
-3. w軸の移動 + 回転を追加 → **4D迷路**
-4. 生成プログラムを N 次元対応にし、難易度違いの複数コースを用意
-
-### 作り込みでいじれるパラメータ
-
-- `src/game.js`: `new Renderer(canvas, { fov: 75 })` … 視野角
-- `src/player.js`: `moveDur` / `turnDur` … 移動・回転の所要時間(操作のキビキビ感)
-- `src/renderer.js`: 色パレット、`maxDist` / `fogStart` / `fogEnd` … 描画距離とフォグ
+> `window.game` は `src/main.js` でゲーム本体をデバッグ用に公開しているものです。
