@@ -121,7 +121,7 @@ export class Game {
     this.player.update(dt);
 
     const cam = this.player.getCamera();
-    this.renderer.render(cam, this.maze);
+    this.renderer.render(cam, this.maze, this.player.basis);
 
     if (this.showMinimap) {
       drawMinimap(this.renderer.ctx, this.maze, cam, this.player.basis, {

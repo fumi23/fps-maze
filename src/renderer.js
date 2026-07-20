@@ -46,15 +46,19 @@ export class Renderer {
     this.f = this.H / 2 / Math.tan(this.fov / 2); // 焦点距離(px)
   }
 
-  render(camera, maze) {
+  // snapBasis: グリッド整列したスナップ済み基底 [右,上,前,...]。
+  // 可視軸/スライスの判定はこちらから行う(回転アニメ中は camera.R/U/Fwd が軸に
+  // 整列しておらず axisOf が破綻するため)。投影には補間済みの camera を使う。
+  render(camera, maze, snapBasis) {
     const ctx = this.ctx;
     ctx.fillStyle = css(BG);
     ctx.fillRect(0, 0, this.W, this.H);
 
     const { pos, R, U, Fwd } = camera;
 
-    // 可視3軸(右/上/前 が指すワールド軸)と、その中の「上軸」。
-    const axR = axisOf(R), axU = axisOf(U), axF = axisOf(Fwd);
+    // 可視3軸(右/上/前 が指すワールド軸)と、その中の「上軸」。スナップ基底から求める。
+    const sb = snapBasis ?? [R, U, Fwd];
+    const axR = axisOf(sb[0]), axU = axisOf(sb[1]), axF = axisOf(sb[2]);
     const visible = new Set([axR, axU, axF]);
     const rounded = pos.map(Math.round);
 
