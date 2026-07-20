@@ -6,7 +6,7 @@ import { loadCourse1 } from "./courses/course1.js";
 const canvas = document.getElementById("view");
 const maze = loadCourse1();
 
-new Game({
+const game = new Game({
   canvas,
   maze,
   hud: {
@@ -14,3 +14,6 @@ new Game({
     win: document.getElementById("win"),
   },
 });
+
+// デバッグ用に参照を公開(コンソールから game.player などを触れる)
+window.game = game;

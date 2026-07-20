@@ -94,6 +94,30 @@ node tools/gen-maze.mjs --w 11 --h 11 --seed 7 > src/courses/course1.data.js
 
 ---
 
+## デバッグ(ブラウザのコンソール)
+
+起動すると `window.game` にゲーム本体が公開されるので、コンソールから状態を触れます。
+`game.debug` にテレポート系のヘルパーがあります。
+
+```js
+game.debug.nearGoal()          // ゴールの隣に置いてゴールを向く(W一歩でクリア)
+game.debug.toGoal()            // ゴールに直接ワープ(即クリア)
+game.debug.toStart()           // スタートに戻る
+game.debug.teleport([x, 1, z]) // 任意セルへ(壁なら拒否して警告)
+game.debug.teleport([3, 1, 5], game.debug.goal()) // 移動してゴールの方を向く
+game.debug.pos()               // 今の座標
+game.debug.goal()              // ゴール座標
+```
+
+- 座標は `[X, Y, Z]`。今のコースは Y=1 の1層なので中央は常に 1、水平は X と Z。
+- `teleport` は座標をN次元ベクトルとして扱うので、3D / 4D に拡張しても
+  `game.debug.teleport([x, y, z, w])` のようにそのまま使えます。
+- そのほか `game.player`(位置・向き)、`game.maze`、`game.renderer` に直接アクセス可能。
+
+> `window.game` はデバッグ用途の公開です。不要になったら `src/main.js` の該当行を消してください。
+
+---
+
 ## GitHub Pages で公開
 
 ビルド不要。リポジトリ直下に `index.html` があるので、そのまま公開できます。

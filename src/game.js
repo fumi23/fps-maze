@@ -6,7 +6,8 @@ import { Player } from "./player.js";
 import { Renderer } from "./renderer.js";
 import { Input } from "./input.js";
 import { drawMinimap } from "./minimap.js";
-import { eq } from "./vec.js";
+import { sub, axisOf } from "./vec.js";
+import { rotated, FWD, RIGHT } from "./orientation.js";
 
 export class Game {
   constructor({ canvas, maze, hud }) {
@@ -17,6 +18,7 @@ export class Game {
     this.player = new Player(maze, { eyeHeight: 0 });
     this.input = new Input(window);
     this.showMinimap = true;
+    this.debug = this._makeDebug();
 
     window.addEventListener("resize", () => this.renderer.resize());
 
@@ -27,7 +29,68 @@ export class Game {
 
   restart() {
     this.player = new Player(this.maze, { eyeHeight: 0 });
-    this.showWin = false;
+  }
+
+  // コンソール用デバッグAPI(window.game.debug)。
+  _makeDebug() {
+    const g = this;
+
+    // fromCell から toCell(水平方向の隣)を向く基底を作る
+    const faceTo = (fromCell, toCell) => {
+      const dir = sub(toCell, fromCell).map(Math.sign);
+      const ax = axisOf(dir);
+      if (ax < 0) return g.player.basis;
+      let basis = g.player.basis.map((v) => v.slice());
+      for (let i = 0; i < 4; i++) {
+        const f = basis[FWD];
+        if (axisOf(f) === ax && f[ax] === dir[ax]) break;
+        basis = rotated(basis, FWD, RIGHT); // 右回りヨー
+      }
+      return basis;
+    };
+
+    return {
+      // 任意セルへ瞬間移動(壁なら拒否)。faceCell 指定でそちらを向く。
+      teleport(cell, faceCell) {
+        if (!g.maze.isEmpty(cell)) {
+          console.warn("[debug] 壁のセルには置けません:", cell);
+          return g.player.pos.slice();
+        }
+        g.player.anim = null;
+        g.player.pos = cell.slice();
+        g.player.won = g.maze.isGoal(cell);
+        if (faceCell) g.player.basis = faceTo(cell, faceCell);
+        console.log("[debug] pos =", g.player.pos.slice());
+        return g.player.pos.slice();
+      },
+      toStart() {
+        return this.teleport(g.maze.start.slice());
+      },
+      toGoal() {
+        return this.teleport(g.maze.goal.slice());
+      },
+      // ゴールの隣(空きセル)へ置き、ゴールを向く。W一歩でクリアできる状態。
+      nearGoal() {
+        const goal = g.maze.goal;
+        const upAx = axisOf(g.player.basis[1]); // 上軸は水平隣の探索から除外
+        for (let ax = 0; ax < g.maze.dims; ax++) {
+          if (ax === upAx) continue;
+          for (const s of [1, -1]) {
+            const n = goal.slice();
+            n[ax] += s;
+            if (g.maze.isEmpty(n)) return this.teleport(n, goal);
+          }
+        }
+        console.warn("[debug] ゴール隣接の空きセルが見つかりません");
+        return g.player.pos.slice();
+      },
+      pos() {
+        return g.player.pos.slice();
+      },
+      goal() {
+        return g.maze.goal.slice();
+      },
+    };
   }
 
   handleInput() {
