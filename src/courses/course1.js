@@ -1,30 +1,38 @@
-// コース1: 静的な1層3D迷路。
-// 2Dグリッド(course1.data.js)を y=1 の1層に配置し、上下(y=0/2)を床・天井の壁で塞ぐ。
-// これで「実質2Dだが本物の3Dエンジンで動く」= look/feel を詰めるための最初のコース。
+// コース1: 多層の3D迷路(浮遊モード)。
+// 上下も本物の迷路軸なので、前後左右だけでは踏破できない。ピッチ/ロールも解禁して
+// 「姿勢を操作しながら進む」操作系のベースにする(重力固定はこの部分集合として後から足せる)。
+//
+// データは tools/gen-maze.mjs が吐いた N次元グリッド。読み方は course1.data.js 冒頭のコメント参照。
 
 import { Maze } from "../maze.js";
-import { grid } from "./course1.data.js";
+import { dims, size, start, goal, rows } from "./course1.data.js";
+
+// セル座標 → rows の行インデックス(axis1 を最上位、以降 axis2, axis3... の順)
+function rowIndex(c) {
+  let i = 0;
+  for (let ax = 1; ax < dims; ax++) i = i * size[ax] + c[ax];
+  return i;
+}
 
 export function loadCourse1() {
-  const D = grid.length; // Z 方向のセル数
-  const W = grid[0].length; // X 方向のセル数
-  const size = [W, 3, D]; // [X, Y(3層), Z]
+  const solid = (c) => rows[rowIndex(c)][c[0]] === "#";
 
-  let start = null;
-  let goal = null;
-  for (let z = 0; z < D; z++) {
-    for (let x = 0; x < W; x++) {
-      const ch = grid[z][x];
-      if (ch === "S") start = [x, 1, z];
-      if (ch === "G") goal = [x, 1, z];
-    }
-  }
+  const maze = new Maze({
+    dims,
+    size,
+    solid,
+    start,
+    goal,
+    forward: { axis: 0, sign: 1 }, // 開始時は +X を向く(壁なら player 側が開いた方向へ向き直す)
+  });
 
-  const solid = ([x, y, z]) => {
-    if (y !== 1) return true; // 床(y=0)と天井(y=2)は常に壁
-    return grid[z][x] === "#";
+  return {
+    maze,
+    // モード記述子: どの回転面/並進方向を入力層で有効にするか。
+    // 面や軸が増えてもエンジンは分岐せず、ここの記述だけが変わる。
+    mode: {
+      rotations: ["yaw", "pitch", "roll"],
+      translations: ["fwd", "strafe", "up"],
+    },
   };
-
-  // 開始時の前方(S地点で開いている +X 方向を向く)
-  return new Maze({ dims: 3, size, solid, start, goal, forward: { axis: 0, sign: 1 } });
 }

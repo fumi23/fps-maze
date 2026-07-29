@@ -5,28 +5,28 @@
 // 完了時に pos / basis を確定スナップする。
 // getCamera() はレンダラ用に、アニメ補間後のカメラ位置と可視3軸を返す。
 
-import { add, scale, lerp, clone, axisOf } from "./vec.js";
-import { identityBasis, rotated, partialRotate, RIGHT, UP, FWD } from "./orientation.js";
+import { add, scale, neg, lerp, clone, unit } from "./vec.js";
+import { identityBasis, rotated, partialRotate, faceDir, RIGHT, UP, FWD } from "./orientation.js";
 
 // なめらかな加減速(0..1)
 const smooth = (t) => t * t * (3 - 2 * t);
 
 // 開始向きを決める。maze.forward を優先しつつ、その先が壁なら
-// 開いている水平方向へヨーして「壁に密着した状態で始まる」のを避ける。
+// 開いている方向へ向き直して「壁に密着した状態で始まる」のを避ける。
+// 3Dでは開いているのが上下だけのこともあるので、水平4方向 → 上下 の順に探す。
 function initialBasis(maze, pos) {
-  let basis = identityBasis(maze.dims);
-  // maze.forward で指定された軸/符号に前方を合わせる(ヨーで最大3回)
-  const want = maze.forward;
-  for (let i = 0; i < 4; i++) {
-    const f = basis[FWD];
-    if (axisOf(f) === want.axis && f[want.axis] === want.sign) break;
-    basis = rotated(basis, FWD, RIGHT); // 右回りヨー
-  }
-  // 前が壁なら、開いている方向が見つかるまでヨー
-  for (let i = 0; i < 4; i++) {
-    const ahead = add(pos, basis[FWD].map(Math.round));
-    if (maze.isEmpty(ahead)) break;
-    basis = rotated(basis, FWD, RIGHT);
+  const basis = faceDir(identityBasis(maze.dims), unit(maze.dims, maze.forward.axis, maze.forward.sign));
+  const candidates = [
+    basis[FWD],
+    basis[RIGHT],
+    neg(basis[FWD]),
+    neg(basis[RIGHT]),
+    basis[UP],
+    neg(basis[UP]),
+  ];
+  for (const d of candidates) {
+    const dir = d.map(Math.round);
+    if (maze.isEmpty(add(pos, dir))) return faceDir(basis, dir);
   }
   return basis;
 }
@@ -63,16 +63,26 @@ export class Player {
   stepBack() { return this.tryStep(FWD, -1); }
   strafeLeft() { return this.tryStep(RIGHT, -1); }
   strafeRight() { return this.tryStep(RIGHT, 1); }
+  stepUp() { return this.tryStep(UP, 1); }
+  stepDown() { return this.tryStep(UP, -1); }
 
-  // dir: +1=右回り, -1=左回り(ヨー)。カメラの (前,右) 平面で回す。
-  turn(dir) {
+  // スロット a,b が張る平面で90度回転する。回転後は「slot a が旧 slot b を向く」。
+  // 面が増えても(4Dのフリップなど)この1本で足りる。
+  rotate(a, b) {
     if (this.busy) return false;
-    const [a, b] = dir > 0 ? [FWD, RIGHT] : [RIGHT, FWD];
     this.anim = { type: "turn", t: 0, dur: this.turnDur, a, b, target: rotated(this.basis, a, b) };
     return true;
   }
-  turnLeft() { return this.turn(-1); }
-  turnRight() { return this.turn(1); }
+
+  // ヨー(前/右): 前を左右へ振る。up は保存される。
+  yawRight() { return this.rotate(FWD, RIGHT); }
+  yawLeft() { return this.rotate(RIGHT, FWD); }
+  // ピッチ(前/上): 前を上下へ向ける。
+  pitchUp() { return this.rotate(FWD, UP); }
+  pitchDown() { return this.rotate(UP, FWD); }
+  // ロール(上/右): 前は変えず、画面内で傾く(方向感覚の調整用)。
+  rollRight() { return this.rotate(UP, RIGHT); }
+  rollLeft() { return this.rotate(RIGHT, UP); }
 
   update(dt) {
     if (!this.anim) return;

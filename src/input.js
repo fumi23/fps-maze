@@ -2,9 +2,8 @@
 // 「離散移動を今どうするか」はゲームループ側が毎フレーム状態を見て決める
 // (= キー押しっぱなしで連続移動できる)。
 //
-// 移動: W/S=前後, A/D=左右ストレイフ
-// 旋回: Q/E または ←/→(どちらも効く)
-// その他: M=ミニマップ切替, R=リスタート
+// キー割り当ての実体は game.js の BINDINGS 表にある。ここは正規化だけを担当する。
+// Shift は修飾キーとして down セットに "shift" で入るので、そのまま参照できる。
 
 export class Input {
   constructor(target = window) {
@@ -37,9 +36,13 @@ export class Input {
   }
 }
 
-const SCROLL_KEYS = new Set(["arrowup", "arrowdown", "arrowleft", "arrowright"]);
+const SCROLL_KEYS = new Set(["arrowup", "arrowdown", "arrowleft", "arrowright", " "]);
+
+// Shift 併用でも同じキーとして扱えるように正規化する。
+// 英字は toLowerCase で揃うが、記号は別文字になるので明示的に戻す。
+const SHIFTED = { "<": ",", ">": "." };
 
 function norm(e) {
   const k = e.key.toLowerCase();
-  return k;
+  return SHIFTED[k] ?? k;
 }

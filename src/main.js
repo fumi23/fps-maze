@@ -4,11 +4,11 @@ import { Game } from "./game.js";
 import { loadCourse1 } from "./courses/course1.js";
 
 const canvas = document.getElementById("view");
-const maze = loadCourse1();
+const course = loadCourse1(); // { maze, mode }
 
 const game = new Game({
   canvas,
-  maze,
+  course,
   hud: {
     pos: document.getElementById("hud-pos"),
     goal: document.getElementById("hud-goal"),

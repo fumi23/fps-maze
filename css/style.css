@@ -64,6 +64,11 @@ body {
   color: #dfe8f5;
   font-weight: 600;
 }
+/* 補助的な操作(ストレイフ・代替キー)は一段落として見せる */
+#help .help-note {
+  color: #74869f;
+  font-size: 11px;
+}
 
 /* ゴール表示 */
 #win {

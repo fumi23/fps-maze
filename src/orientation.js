@@ -47,3 +47,34 @@ export function partialRotate(basis, a, b, theta) {
 export const RIGHT = 0;
 export const UP = 1;
 export const FWD = 2;
+
+// 符号付き単位ベクトル dir を「前(FWD)」に向けた基底を返す。
+// ピッチ(前/上)→ ヨー(前/右)の組み合わせを総当たりする。3Dなら6方向すべてに届く。
+// 見つからなければ元の基底をそのまま返す。
+export function faceDir(basis, dir) {
+  let pitched = basis;
+  for (let p = 0; p < 4; p++) {
+    let b = pitched;
+    for (let y = 0; y < 4; y++) {
+      if (sameDir(b[FWD], dir)) return b;
+      b = rotated(b, FWD, RIGHT);
+    }
+    pitched = rotated(pitched, FWD, UP);
+  }
+  return basis;
+}
+
+// グリッド整列した(=成分が 0/±1 の)ベクトル同士の一致判定
+const sameDir = (a, b) => a.every((v, i) => Math.round(v) === Math.round(b[i]));
+
+// 世界軸の表示名。4D の W まで用意(それ以上は a4, a5, ...)。
+export const axisLabel = (ax) => ["X", "Y", "Z", "W"][ax] ?? `a${ax}`;
+
+// 符号付き単位ベクトル → "+X" / "-Z" のような人間向けラベル(グリッド整列時)
+export function dirLabel(v) {
+  for (let i = 0; i < v.length; i++) {
+    const s = Math.round(v[i]);
+    if (s !== 0) return (s > 0 ? "+" : "-") + axisLabel(i);
+  }
+  return "?";
+}

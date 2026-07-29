@@ -6,21 +6,45 @@ import { Player } from "./player.js";
 import { Renderer } from "./renderer.js";
 import { Input } from "./input.js";
 import { drawMinimap } from "./minimap.js";
-import { sub, axisOf } from "./vec.js";
-import { rotated, FWD, RIGHT } from "./orientation.js";
+import { sub, unit } from "./vec.js";
+import { faceDir, dirLabel, UP, FWD } from "./orientation.js";
 
 // ミニマップは常時表示せず「M で一時的に覗く」方式。地図を追いながら歩く状態を避ける。
 const MINIMAP_PEEK = 3.5; // 表示してから消えるまでの秒数
 const MINIMAP_FADE_IN = 0.15;
 const MINIMAP_FADE_OUT = 0.6;
 
+// キーバインド表。統一スキーム:
+//   単体キー = 旋回 / Shift = ストレイフ(前以外への並進) / 前後は単体で並進。
+// shift: true=Shift必須, false=Shift禁止, null=どちらでも。
+// need: モード記述子のどの機能を要求するか。無効なコースではそのバインドが消えるだけ。
+// 先に一致した1手だけを実行する(優先順位 = 前後 > ストレイフ > 旋回)。
+const BINDINGS = [
+  { keys: ["w"], shift: null, need: ["translations", "fwd"], act: (p) => p.stepForward() },
+  { keys: ["s"], shift: null, need: ["translations", "fwd"], act: (p) => p.stepBack() },
+  { keys: ["a"], shift: true, need: ["translations", "strafe"], act: (p) => p.strafeLeft() },
+  { keys: ["d"], shift: true, need: ["translations", "strafe"], act: (p) => p.strafeRight() },
+  { keys: ["r"], shift: true, need: ["translations", "up"], act: (p) => p.stepUp() },
+  { keys: ["f"], shift: true, need: ["translations", "up"], act: (p) => p.stepDown() },
+  { keys: ["a", "arrowleft"], shift: false, need: ["rotations", "yaw"], act: (p) => p.yawLeft() },
+  { keys: ["d", "arrowright"], shift: false, need: ["rotations", "yaw"], act: (p) => p.yawRight() },
+  { keys: ["r", "arrowup"], shift: false, need: ["rotations", "pitch"], act: (p) => p.pitchUp() },
+  { keys: ["f", "arrowdown"], shift: false, need: ["rotations", "pitch"], act: (p) => p.pitchDown() },
+  { keys: [","], shift: null, need: ["rotations", "roll"], act: (p) => p.rollLeft() },
+  { keys: ["."], shift: null, need: ["rotations", "roll"], act: (p) => p.rollRight() },
+];
+
+// コース側が mode を持たないときの既定(2D相当: ヨーと水平移動のみ)
+const DEFAULT_MODE = { rotations: ["yaw"], translations: ["fwd", "strafe"] };
+
 export class Game {
-  constructor({ canvas, maze, hud }) {
+  constructor({ canvas, course, hud }) {
     this.canvas = canvas;
-    this.maze = maze;
+    this.maze = course.maze;
+    this.mode = course.mode ?? DEFAULT_MODE;
     this.hud = hud;
     this.renderer = new Renderer(canvas, { fov: 85 });
-    this.player = new Player(maze, { eyeHeight: 0 });
+    this.player = new Player(this.maze, { eyeHeight: 0 });
     this.input = new Input(window);
     this.minimapPeek = 0; // ミニマップの残り表示秒(0 = 非表示)
     this.minimapPinned = false; // デバッグ: 常時表示(game.debug.minimap)
@@ -41,18 +65,19 @@ export class Game {
   _makeDebug() {
     const g = this;
 
-    // fromCell から toCell(水平方向の隣)を向く基底を作る
+    // fromCell から toCell を向く基底を作る(差が最大の軸を前方に取る)
     const faceTo = (fromCell, toCell) => {
-      const dir = sub(toCell, fromCell).map(Math.sign);
-      const ax = axisOf(dir);
-      if (ax < 0) return g.player.basis;
-      let basis = g.player.basis.map((v) => v.slice());
-      for (let i = 0; i < 4; i++) {
-        const f = basis[FWD];
-        if (axisOf(f) === ax && f[ax] === dir[ax]) break;
-        basis = rotated(basis, FWD, RIGHT); // 右回りヨー
+      const d = sub(toCell, fromCell);
+      let ax = -1;
+      let best = 0;
+      for (let i = 0; i < d.length; i++) {
+        if (Math.abs(d[i]) > best) {
+          best = Math.abs(d[i]);
+          ax = i;
+        }
       }
-      return basis;
+      if (ax < 0) return g.player.basis;
+      return faceDir(g.player.basis, unit(d.length, ax, Math.sign(d[ax])));
     };
 
     return {
@@ -78,9 +103,7 @@ export class Game {
       // ゴールの隣(空きセル)へ置き、ゴールを向く。W一歩でクリアできる状態。
       nearGoal() {
         const goal = g.maze.goal;
-        const upAx = axisOf(g.player.basis[1]); // 上軸は水平隣の探索から除外
         for (let ax = 0; ax < g.maze.dims; ax++) {
-          if (ax === upAx) continue;
           for (const s of [1, -1]) {
             const n = goal.slice();
             n[ax] += s;
@@ -108,20 +131,21 @@ export class Game {
   handleInput() {
     const inp = this.input;
 
-    // 単発トグル系
+    // 単発トグル系(R はピッチに使うので、リスタートは Enter)
     if (inp.wasPressed("m")) this.minimapPeek = MINIMAP_PEEK; // 一時表示(再押下で延長)
-    if (inp.wasPressed("r")) this.restart();
+    if (inp.wasPressed("enter")) this.restart();
 
     if (this.player.busy) return; // アニメ中は次の入力を受けない(離散)
     if (this.player.won) return;
 
-    // 押下優先順位: 前後 > ストレイフ > 旋回。最初に一致した1手だけ実行。
-    if (inp.isDown("w")) this.player.stepForward();
-    else if (inp.isDown("s")) this.player.stepBack();
-    else if (inp.isDown("a")) this.player.strafeLeft();
-    else if (inp.isDown("d")) this.player.strafeRight();
-    else if (inp.isDown("q", "arrowleft")) this.player.turnLeft();
-    else if (inp.isDown("e", "arrowright")) this.player.turnRight();
+    const shift = inp.isDown("shift");
+    for (const b of BINDINGS) {
+      if (b.shift !== null && b.shift !== shift) continue;
+      if (!this.mode[b.need[0]].includes(b.need[1])) continue;
+      if (!inp.isDown(...b.keys)) continue;
+      b.act(this.player);
+      break;
+    }
   }
 
   tick(now) {
@@ -150,34 +174,26 @@ export class Game {
       ctx.save();
       ctx.globalAlpha = mmAlpha;
       drawMinimap(ctx, this.maze, cam, this.player.basis, {
-        cell: 8 * this.renderer.dpr,
+        cell: 11 * this.renderer.dpr,
         pad: 12 * this.renderer.dpr,
         anchor: "bottom-right",
       });
       ctx.restore();
     }
 
-    this.updateHud(cam);
+    this.updateHud();
     this.input.endFrame();
     requestAnimationFrame(this.tick);
   }
 
-  updateHud(cam) {
+  updateHud() {
     if (!this.hud) return;
     const p = this.player.pos;
     this.hud.win.style.display = this.player.won ? "flex" : "none";
-    const facing = faceName(cam.Fwd);
-    this.hud.pos.textContent = `pos (${p.join(", ")})  facing ${facing}`;
+    // 姿勢インジケータ相当: 3Dでは前だけでは姿勢が決まらないので上も出す。
+    // 回転アニメ中の cam.Fwd は軸に整列していないので、スナップ済み基底を使う。
+    const b = this.player.basis;
+    this.hud.pos.textContent = `pos (${p.join(", ")})  facing ${dirLabel(b[FWD])}  up ${dirLabel(b[UP])}`;
     if (this.hud.goal) this.hud.goal.textContent = `goal (${this.maze.goal.join(", ")})`;
   }
-}
-
-// 前方向ベクトル → 人間向けラベル(グリッド整列時)
-function faceName(fwd) {
-  const names = ["+X", "+Y", "+Z"];
-  for (let i = 0; i < fwd.length; i++) {
-    if (Math.round(fwd[i]) === 1) return names[i] ?? `+a${i}`;
-    if (Math.round(fwd[i]) === -1) return "-" + (names[i]?.slice(1) ?? `a${i}`);
-  }
-  return "?";
 }
