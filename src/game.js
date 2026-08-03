@@ -22,12 +22,15 @@ const MINIMAP_FADE_OUT = 0.6;
 const BINDINGS = [
   { keys: ["w"], shift: null, need: ["translations", "fwd"], act: (p) => p.stepForward() },
   { keys: ["s"], shift: null, need: ["translations", "fwd"], act: (p) => p.stepBack() },
-  { keys: ["a"], shift: true, need: ["translations", "strafe"], act: (p) => p.strafeLeft() },
-  { keys: ["d"], shift: true, need: ["translations", "strafe"], act: (p) => p.strafeRight() },
+  { keys: ["q"], shift: true, need: ["translations", "strafe"], act: (p) => p.strafeLeft() },
+  { keys: ["e"], shift: true, need: ["translations", "strafe"], act: (p) => p.strafeRight() },
+  // A/D は WASD 慣れ用のエイリアス。Shift の有無を問わずストレイフに直結する。
+  { keys: ["a"], shift: null, need: ["translations", "strafe"], act: (p) => p.strafeLeft() },
+  { keys: ["d"], shift: null, need: ["translations", "strafe"], act: (p) => p.strafeRight() },
   { keys: ["r"], shift: true, need: ["translations", "up"], act: (p) => p.stepUp() },
   { keys: ["f"], shift: true, need: ["translations", "up"], act: (p) => p.stepDown() },
-  { keys: ["a", "arrowleft"], shift: false, need: ["rotations", "yaw"], act: (p) => p.yawLeft() },
-  { keys: ["d", "arrowright"], shift: false, need: ["rotations", "yaw"], act: (p) => p.yawRight() },
+  { keys: ["q", "arrowleft"], shift: false, need: ["rotations", "yaw"], act: (p) => p.yawLeft() },
+  { keys: ["e", "arrowright"], shift: false, need: ["rotations", "yaw"], act: (p) => p.yawRight() },
   { keys: ["r", "arrowup"], shift: false, need: ["rotations", "pitch"], act: (p) => p.pitchUp() },
   { keys: ["f", "arrowdown"], shift: false, need: ["rotations", "pitch"], act: (p) => p.pitchDown() },
   { keys: [","], shift: null, need: ["rotations", "roll"], act: (p) => p.rollLeft() },
@@ -131,9 +134,9 @@ export class Game {
   handleInput() {
     const inp = this.input;
 
-    // 単発トグル系(R はピッチに使うので、リスタートは Enter)
+    // 単発トグル系
     if (inp.wasPressed("m")) this.minimapPeek = MINIMAP_PEEK; // 一時表示(再押下で延長)
-    if (inp.wasPressed("enter")) this.restart();
+    if (inp.wasPressed("escape")) this.restart();
 
     if (this.player.busy) return; // アニメ中は次の入力を受けない(離散)
     if (this.player.won) return;
