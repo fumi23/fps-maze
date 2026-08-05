@@ -7,7 +7,7 @@ import { Renderer } from "./renderer.js";
 import { Input } from "./input.js";
 import { drawMinimap } from "./minimap.js";
 import { sub, unit } from "./vec.js";
-import { faceDir, dirLabel, UP, FWD } from "./orientation.js";
+import { faceDir, dirLabel, FWD } from "./orientation.js";
 
 // ミニマップは常時表示せず「M で一時的に覗く」方式。地図を追いながら歩く状態を避ける。
 const MINIMAP_PEEK = 3.5; // 表示してから消えるまでの秒数
@@ -193,10 +193,10 @@ export class Game {
     if (!this.hud) return;
     const p = this.player.pos;
     this.hud.win.style.display = this.player.won ? "flex" : "none";
-    // 姿勢インジケータ相当: 3Dでは前だけでは姿勢が決まらないので上も出す。
+    // 姿勢インジケータ相当: 常時出すのは座標と前だけ。上はあえて出さない:
     // 回転アニメ中の cam.Fwd は軸に整列していないので、スナップ済み基底を使う。
     const b = this.player.basis;
-    this.hud.pos.textContent = `pos (${p.join(", ")})  facing ${dirLabel(b[FWD])}  up ${dirLabel(b[UP])}`;
+    this.hud.pos.textContent = `pos (${p.join(", ")})  facing ${dirLabel(b[FWD])}`;
     if (this.hud.goal) this.hud.goal.textContent = `goal (${this.maze.goal.join(", ")})`;
   }
 }
